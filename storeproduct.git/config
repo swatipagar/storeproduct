@@ -1,0 +1,10 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	sharedrepository = 1
+[receive]
+	denyNonFastforwards = true
+[remote "origin"]
+	url = ssh://github.com/swatipagar/storeproduct
+	fetch = +refs/heads/*:refs/remotes/origin/*
