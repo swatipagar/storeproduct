@@ -1,0 +1,1 @@
+{:name=>"Mouse", :qty=>1, :price=>34570}

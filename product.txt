@@ -1,0 +1,5 @@
+{:id=>1, :name=>"Laptop", :qty=>9, :price=>34570}
+{:id=>2, :name=>"cs", :qty=>8, :price=>8907}
+{:id=>3, :name=>"Mouse", :qty=>6, :price=>750}
+{:id=>4, :name=>"Any", :qty=>7, :price=>750}
+{:id=>5, :name=>"Anyone", :qty=>8, :price=>750}
