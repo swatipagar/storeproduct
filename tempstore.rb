@@ -1,4 +1,3 @@
-require 'json'
 require 'io/console'
 require 'byebug'
 require 'pp'
@@ -84,27 +83,55 @@ attr_accessor :product
     File.open("buy_product.txt", File::TRUNC) {}
     @num1 = num1
     @buy_product = []
+    @buy_qty = []
+    @buy_price =[]
     for i in 0..num1-1 
       print "\nEnter Product Name: "
       name=gets.chomp
       print "\nEnter Quantity: " 
       qty = gets.to_i
-      @buy_price =[]
+      File.open("product.txt","r").each do |line|
+        prod=eval(line)
+        if File.open('product.txt').each_line.any?{|line| line.include?(name)} 
+          if prod[:name]==name
+            if prod[:qty] >= qty
+              @buy_qty << {qty: qty}
+            else
+              until prod[:qty] >= qty
+                if prod[:qty] > 0
+                  p "Only #{prod[:qty]} is Available"
+                  print "\nEnter Quantity: " 
+                  qty = gets.to_i
+                  @buy_qty << {qty: qty}
+                else
+                  p "Product is not available"
+                  break
+                end
+              end
+            end 
+          end
+        end
+      end
       price =File.open("product.txt", "r").each do |line|
         if File.open('product.txt').each_line.any?{|line| line.include?(name)}
-          if line!=nil
+          if line != nil
             prod = eval(line)
-            new_price=prod[:price]
-            @buy_price << {price: new_price}
+            if prod[:name]==name
+              new_price=prod[:price]
+              @buy_price << {price: new_price}
+            end
           end
         end 
       end 
     end
-    @buy_product << {name: name, qty: qty}
+    if @buy_qty.any?
+    @buy_product << {name: name}
+    @buy_product = pp @buy_product.zip(@buy_qty).collect {|array| array.inject(&:merge) }
     @buy_product= pp @buy_product.zip(@buy_price).collect { |array| array.inject(&:merge) }
+  end
     return @buy_product
   end
-
+  
   def menu
     print "\nMenu\nEnter 1 for Admin\nEnter 2 for User\n3 for Exit\n"
   end
@@ -126,12 +153,12 @@ begin
   ch=gets.to_i
   case ch
     when 1
-      puts "Enter Your Email: "
-      admin_email=gets.chomp
-      print "Password: "
-      admin_password=STDIN.noecho(&:gets).chomp
-      if admin_email == "admin@gmail.com" && admin_password == "admin1234"
-        product_object.menu_admin
+      # puts "Enter Your Email: "
+      # admin_email=gets.chomp
+      # print "Password: "
+      # admin_password=STDIN.noecho(&:gets).chomp
+      # if admin_email == "admin@gmail.com" && admin_password == "admin1234"
+         product_object.menu_admin
         begin
           print "\nEnter your choice: "
           ch=gets.to_i
@@ -172,11 +199,21 @@ begin
             puts "Enter Product Name you want to Search"
             word = gets.chomp
             if File.open('product.txt').each_line.any?{|line| line.include?(word)}
-              print 'Product is Present'
-            else
-              print "Product is not Present"
+              File.open("product.txt").each do |line|
+                search_prod = eval(line)
+                if search_prod[:name]== word
+                print 'Product is Present'
+                print "\n\tId\tName\t\tQty\t\tPrice\n"
+                print "\t",search_prod[:id],"\t",search_prod[:name],"\t\t",search_prod[:qty],"\t\t",search_prod[:price],"\t\n"
+              end
             end
-
+            else
+              print "Product is not Present\n"
+              break
+            end 
+            # if File.open('product.txt').each_line.any?{|line| line.include?(word)}
+            #   puts word
+            
           when 4
             puts "Edit Product"
             print "Enter how many Products you want to edit: "
@@ -211,31 +248,27 @@ begin
           when 5
             puts "Exit from case"
             exit(0)
-          else
-            product_object.menu_admin()
-          end
-      end while ch != 5
       else
-        product_object.menu
+        product_object.menu_admin()
       end
+      end while ch != 5
+      # else
+      #   product_object.menu
+      # end
       
     when 2
-      puts "Enter Your Name: "
-      user_name = gets.chomp
-      print "Password: "
-      user_password=STDIN.noecho(&:gets).chomp
-      if user_name!=nil && user_password!=nil
-        product_object.menu_user
-        begin
-          print "\nEnter your choice: "
-          ch=gets.to_i
-          case ch
-            when 1
-              puts "Buy product"
-              print "Enter how many Products you want to enter: "
-              num1=gets.to_i
-              total = 0
-              @buy_product=product_object.buy_products(num1)
+      product_object.menu_user
+      begin
+        print "\nEnter your choice: "
+        ch = gets.to_i
+        case ch
+          when 1
+            puts "Buy product"
+            print "Enter how many Products you want to enter: "
+            num1 = gets.to_i
+            total = 0
+            @buy_product=product_object.buy_products(num1)
+            if @buy_product.empty? == false
               File.open("buy_product.txt", "a+") do |f|
                 @buy_product.each { |element| f.puts(element) }
               end 
@@ -246,60 +279,69 @@ begin
                 buy_product_print = eval(line)
                 print "\t", buy_product_print[:name],"\t\t",buy_product_print[:qty],"\t\t",buy_product_print[:price],"\t\n"
                 total += buy_product_print[:price]
-                p total
+                print "\t\tTotal= ", total
                   File.open("product.txt", "a+").each_line do |f|
                     prod = eval(f)
                     File.open("new_product.txt", 'a+') do |f|
                       if File.open('product.txt').each_line.any?{|k| k.include?(buy_product_print[:name])}
-                      new_prod = prod[:qty]-buy_product_print[:qty]
-                      prod[:qty] = new_prod
-                      f.puts prod
+                        if prod[:name]==buy_product_print[:name]
+                          new_prod = prod[:qty]-buy_product_print[:qty]
+                          prod[:qty] = new_prod
+                        end
+                          f.puts prod
                       else
                         puts "Product is not Available"
+                        break
                       end
                     end unless prod == nil
                   end 
-              end unless @buy_product==nil
-              source_file, destination_file = ARGV 
-              script = $0
-              # File.open("new_product.txt", File::TRUNC) {}
-              input = File.open("new_product.txt")  
-              data_to_copy = input.read()  # gather the data using read() method
-
-              output = File.open("product.txt", 'w')
-              output.write(data_to_copy)  # write up the data using write() method
-
-              output.close()
-              input.close()
-            when 2
-              puts "Product List\n"
-              print "Name\t\tQty\tPrice\n"
-            File.readlines("product.txt").each_with_index do |line|
-              product_print = eval(line)
-               print product_print[:name],"\t",product_print[:qty],"\t",product_print[:price],"\t\n"
+              end unless @buy_product == nil
             end
-            
-            when 3
-              puts "search product"
-              puts "Enter Product Name you want to Search"
-              word = gets.chomp
-              if File.open('product.txt').each_line.any?{|line| line.include?(word)}
+            source_file, destination_file = ARGV 
+            script = $0
+            # File.open("new_product.txt", File::TRUNC) {}
+            input = File.open("new_product.txt")  
+            data_to_copy = input.read()  # gather the data using read() method
+
+            output = File.open("product.txt", 'w')
+            output.write(data_to_copy)  # write up the data using write() method
+
+            output.close()
+            input.close()
+          when 2
+            puts "Product List\n"
+            print "Name\t\tQty\tPrice\n"
+          File.readlines("product.txt").each_with_index do |line|
+            product_print = eval(line)
+             print product_print[:name],"\t",product_print[:qty],"\t",product_print[:price],"\t\n"
+          end
+          
+          when 3
+            puts "Search Product"
+            puts "Enter Product Name you want to Search"
+            word = gets.chomp
+            if File.open('product.txt').each_line.any?{|line| line.include?(word)}
+              File.open("product.txt").each do |line|
+                search_prod = eval(line)
+                if search_prod[:name]== word
                 print 'Product is Present'
-              else
-                print "Product is not Present"
+                print "\n\tId\tName\t\tQty\t\tPrice\n"
+                print "\t",search_prod[:id],"\t",search_prod[:name],"\t\t",search_prod[:qty],"\t\t",search_prod[:price],"\t\n"
               end
-            
-            when 4
-              puts "Exit from case"
-              exit(0)
-
-            else
-              product_object.menu_user()
             end
-          end while ch != 4
-        else
-          product_object.menu_user()
-        end
+            else
+              print "Product is not Present\n"
+              break
+            end 
+          
+          when 4
+            puts "Exit from case"
+            exit(0)
+
+          else
+            product_object.menu_user()
+          end
+        end while ch != 4
     when 3
         puts "Exit from case"
         exit(0)
